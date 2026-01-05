@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  homeassistant-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: homeassistant-mcp
+    image: homeassistant-mcp:latest
+    restart: unless-stopped
+
+    # Environment variables
+    environment:
+      - NODE_ENV=production
+      - HASS_HOST=${HASS_HOST:-http://homeassistant.local:8123}
+      - HASS_TOKEN=${HASS_TOKEN}
+      - PORT=${PORT:-3000}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+
+    # Ports
+    ports:
+      - "${PORT:-3000}:3000"
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # Networks
+    networks:
+      - homeassistant
+
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  homeassistant:
+    driver: bridge
