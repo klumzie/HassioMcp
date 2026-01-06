@@ -299,7 +299,14 @@ process.stdin.on('error', (err) => {
   console.error('stdin error:', err);
 });
 
-// Keep process alive even if stdin closes
-process.stdin.resume();
+// Keep process alive indefinitely with a setInterval
+const keepAlive = setInterval(() => {
+  // This interval keeps the Node.js event loop active
+}, 60000); // Check every minute
+
+// Cleanup on exit
+process.on('exit', () => {
+  clearInterval(keepAlive);
+});
 
 server.start();
