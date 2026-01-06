@@ -274,4 +274,27 @@ server.addTool({
 // Start the MCP server on stdio only (no HTTP server)
 console.error(`Home Assistant MCP Server (stdio-only) starting...`);
 console.error(`Connected to Home Assistant at ${HASS_HOST}`);
+
+// Add process event handlers for debugging
+process.on('exit', (code) => {
+  console.error(`Process exiting with code: ${code}`);
+});
+
+process.on('SIGTERM', () => {
+  console.error('Received SIGTERM');
+});
+
+process.on('SIGINT', () => {
+  console.error('Received SIGINT');
+});
+
+process.stdin.on('end', () => {
+  console.error('stdin ended');
+  process.exit(0);
+});
+
+process.stdin.on('error', (err) => {
+  console.error('stdin error:', err);
+});
+
 server.start();
