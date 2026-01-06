@@ -272,31 +272,17 @@ server.addTool({
 });
 
 // Start the MCP server on stdio only (no HTTP server)
-console.error(`Home Assistant MCP Server (stdio-only) starting...`);
-console.error(`Connected to Home Assistant at ${HASS_HOST}`);
+// Don't log startup messages - they can interfere with Claude Desktop's MCP detection
+// console.error(`Home Assistant MCP Server (stdio-only) starting...`);
+// console.error(`Connected to Home Assistant at ${HASS_HOST}`);
 
-// Add process event handlers for debugging
-process.on('exit', (code) => {
-  console.error(`Process exiting with code: ${code}`);
-});
-
+// Add process event handlers
 process.on('SIGTERM', () => {
-  console.error('Received SIGTERM');
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
-  console.error('Received SIGINT');
   process.exit(0);
-});
-
-// Don't exit on stdin end - let litemcp handle it
-process.stdin.on('end', () => {
-  console.error('stdin ended (but not exiting)');
-});
-
-process.stdin.on('error', (err) => {
-  console.error('stdin error:', err);
 });
 
 // Keep process alive indefinitely with a setInterval
