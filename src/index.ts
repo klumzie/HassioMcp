@@ -6,7 +6,7 @@
  */
 
 import 'dotenv/config';
-import { Server } from 'litemcp';
+import { LiteMCP } from 'litemcp';
 import express from 'express';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -35,10 +35,7 @@ const PORT = process.env.PORT || 3000;
 const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
 
 // Initialize MCP Server
-const server = new Server({
-  name: 'homeassistant-mcp',
-  version: '0.1.0',
-});
+const server = new LiteMCP('homeassistant-mcp', '0.1.0');
 
 // Initialize Express app for HTTP endpoints
 const app = express();
@@ -324,7 +321,7 @@ app.get('/list_devices', async (req, res) => {
 });
 
 // Start the MCP server on stdio
-server.listen();
+server.start();
 
 // Start the HTTP server
 app.listen(PORT, () => {
