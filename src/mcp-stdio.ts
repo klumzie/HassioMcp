@@ -282,19 +282,24 @@ process.on('exit', (code) => {
 
 process.on('SIGTERM', () => {
   console.error('Received SIGTERM');
+  process.exit(0);
 });
 
 process.on('SIGINT', () => {
   console.error('Received SIGINT');
+  process.exit(0);
 });
 
+// Don't exit on stdin end - let litemcp handle it
 process.stdin.on('end', () => {
-  console.error('stdin ended');
-  process.exit(0);
+  console.error('stdin ended (but not exiting)');
 });
 
 process.stdin.on('error', (err) => {
   console.error('stdin error:', err);
 });
+
+// Keep process alive even if stdin closes
+process.stdin.resume();
 
 server.start();
