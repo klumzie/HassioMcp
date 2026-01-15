@@ -11,10 +11,13 @@ echo.
 if "%~1"=="" (
     echo Usage: Drag and drop an Office file onto this script
     echo.
-    echo Supported formats:
-    echo   - PowerPoint: .pptx, .ppsx
-    echo   - Excel: .xlsx, .xlsm
-    echo   - Word: .docx
+    echo Supported formats (Office 2007+ XML-based):
+    echo   - PowerPoint: .pptx, .pptm, .ppsx, .potx, .potm
+    echo   - Excel: .xlsx, .xlsm, .xltx, .xltm
+    echo   - Word: .docx, .docm, .dotx, .dotm
+    echo.
+    echo Note: Legacy binary formats (.ppt, .xls, .doc) are NOT supported
+    echo       Convert to modern formats first using Office "Save As"
     echo.
     echo Or run: remove-office-protection.bat "path\to\file.docx"
     pause
@@ -29,16 +32,68 @@ set "FILE_EXT=%~x1"
 
 :: Validate file extension and determine file type
 set "FILE_TYPE="
+
+:: PowerPoint formats (presentations and templates)
 if /i "%FILE_EXT%"==".pptx" set "FILE_TYPE=POWERPOINT"
+if /i "%FILE_EXT%"==".pptm" set "FILE_TYPE=POWERPOINT"
 if /i "%FILE_EXT%"==".ppsx" set "FILE_TYPE=POWERPOINT"
+if /i "%FILE_EXT%"==".potx" set "FILE_TYPE=POWERPOINT"
+if /i "%FILE_EXT%"==".potm" set "FILE_TYPE=POWERPOINT"
+
+:: Excel formats (workbooks and templates)
 if /i "%FILE_EXT%"==".xlsx" set "FILE_TYPE=EXCEL"
 if /i "%FILE_EXT%"==".xlsm" set "FILE_TYPE=EXCEL"
-if /i "%FILE_EXT%"==".docx" set "FILE_TYPE=WORD"
+if /i "%FILE_EXT%"==".xltx" set "FILE_TYPE=EXCEL"
+if /i "%FILE_EXT%"==".xltm" set "FILE_TYPE=EXCEL"
 
+:: Word formats (documents and templates)
+if /i "%FILE_EXT%"==".docx" set "FILE_TYPE=WORD"
+if /i "%FILE_EXT%"==".docm" set "FILE_TYPE=WORD"
+if /i "%FILE_EXT%"==".dotx" set "FILE_TYPE=WORD"
+if /i "%FILE_EXT%"==".dotm" set "FILE_TYPE=WORD"
+
+:: Check if format is supported
 if "%FILE_TYPE%"=="" (
+    :: Check if it's a legacy binary format
+    set "IS_LEGACY="
+    if /i "%FILE_EXT%"==".ppt" set "IS_LEGACY=PowerPoint 97-2003"
+    if /i "%FILE_EXT%"==".pps" set "IS_LEGACY=PowerPoint 97-2003 Slideshow"
+    if /i "%FILE_EXT%"==".pot" set "IS_LEGACY=PowerPoint 97-2003 Template"
+    if /i "%FILE_EXT%"==".xls" set "IS_LEGACY=Excel 97-2003"
+    if /i "%FILE_EXT%"==".xlt" set "IS_LEGACY=Excel 97-2003 Template"
+    if /i "%FILE_EXT%"==".doc" set "IS_LEGACY=Word 97-2003"
+    if /i "%FILE_EXT%"==".dot" set "IS_LEGACY=Word 97-2003 Template"
+
+    if not "!IS_LEGACY!"=="" (
+        echo ========================================
+        echo LEGACY FORMAT DETECTED
+        echo ========================================
+        echo File type: !IS_LEGACY! ^(%FILE_EXT%^)
+        echo.
+        echo This script only works with modern Office formats
+        echo that use XML structure ^(Office 2007 and later^).
+        echo.
+        echo To use this tool:
+        echo 1. Open your file in Microsoft Office
+        echo 2. Click "File" -^> "Save As"
+        echo 3. Choose the modern format:
+        echo    - .ppt -^> .pptx
+        echo    - .xls -^> .xlsx
+        echo    - .doc -^> .docx
+        echo 4. Run this script on the converted file
+        echo ========================================
+        pause
+        exit /b 1
+    )
+
     echo Error: Unsupported file type: %FILE_EXT%
     echo.
-    echo Supported formats: .pptx, .ppsx, .xlsx, .xlsm, .docx
+    echo Supported formats:
+    echo   PowerPoint: .pptx, .pptm, .ppsx, .potx, .potm
+    echo   Excel: .xlsx, .xlsm, .xltx, .xltm
+    echo   Word: .docx, .docm, .dotx, .dotm
+    echo.
+    echo Legacy formats (.ppt, .xls, .doc) are NOT supported
     pause
     exit /b 1
 )
