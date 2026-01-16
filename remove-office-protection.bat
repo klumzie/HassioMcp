@@ -1,10 +1,6 @@
 @echo off
 setlocal enabledelayedexpansion
 
-:: Test that window opens
-echo Script is starting...
-timeout /t 2 >nul
-
 echo ========================================
 echo Office Protection Remover
 echo (Word/Excel/PowerPoint)
@@ -166,7 +162,8 @@ if "%FILE_TYPE%"=="POWERPOINT" (
         exit /b 1
     )
     echo       Found: ppt\presentation.xml
-    powershell -Command "$content = Get-Content '!TARGET_FILE!' -Raw; $content = $content -replace '<p:modifyVerifier[^>]*/>',''; $content = $content -replace '<p:modifyVerifier[^>]*>.*?</p:modifyVerifier>',''; Set-Content '!TARGET_FILE!' -Value $content -NoNewline"
+    powershell -Command "$content = Get-Content '!TARGET_FILE!' -Raw; $content = $content -replace '<p:modifyVerifier[^>]*/>',''; Set-Content '!TARGET_FILE!' -Value $content -NoNewline"
+    powershell -Command "$content = Get-Content '!TARGET_FILE!' -Raw; $content = $content -replace '<p:modifyVerifier[^>]*>.*?</p:modifyVerifier>',''; Set-Content '!TARGET_FILE!' -Value $content -NoNewline"
     echo       Removed PowerPoint protection tags
 )
 
@@ -183,13 +180,17 @@ if "%FILE_TYPE%"=="EXCEL" (
     echo       Found: xl\workbook.xml
 
     :: Remove workbook protection
-    powershell -Command "$content = Get-Content '!WORKBOOK_FILE!' -Raw; $content = $content -replace '<workbookProtection[^>]*/>',''; $content = $content -replace '<workbookProtection[^>]*>.*?</workbookProtection>',''; $content = $content -replace '<fileSharing[^>]*/>',''; $content = $content -replace '<fileSharing[^>]*>.*?</fileSharing>',''; Set-Content '!WORKBOOK_FILE!' -Value $content -NoNewline"
+    powershell -Command "$content = Get-Content '!WORKBOOK_FILE!' -Raw; $content = $content -replace '<workbookProtection[^>]*/>',''; Set-Content '!WORKBOOK_FILE!' -Value $content -NoNewline"
+    powershell -Command "$content = Get-Content '!WORKBOOK_FILE!' -Raw; $content = $content -replace '<workbookProtection[^>]*>.*?</workbookProtection>',''; Set-Content '!WORKBOOK_FILE!' -Value $content -NoNewline"
+    powershell -Command "$content = Get-Content '!WORKBOOK_FILE!' -Raw; $content = $content -replace '<fileSharing[^>]*/>',''; Set-Content '!WORKBOOK_FILE!' -Value $content -NoNewline"
+    powershell -Command "$content = Get-Content '!WORKBOOK_FILE!' -Raw; $content = $content -replace '<fileSharing[^>]*>.*?</fileSharing>',''; Set-Content '!WORKBOOK_FILE!' -Value $content -NoNewline"
     echo       Removed workbook protection
 
     :: Remove sheet protection from all worksheets
     if exist "%TEMP_DIR%\xl\worksheets\" (
         echo       Processing worksheet protection...
-        powershell -Command "Get-ChildItem '%TEMP_DIR%\xl\worksheets\*.xml' | ForEach-Object { $content = Get-Content $_.FullName -Raw; $content = $content -replace '<sheetProtection[^>]*/>',''; $content = $content -replace '<sheetProtection[^>]*>.*?</sheetProtection>',''; Set-Content $_.FullName -Value $content -NoNewline }"
+        powershell -Command "Get-ChildItem '%TEMP_DIR%\xl\worksheets\*.xml' | ForEach-Object { $content = Get-Content $_.FullName -Raw; $content = $content -replace '<sheetProtection[^>]*/>',''; Set-Content $_.FullName -Value $content -NoNewline }"
+        powershell -Command "Get-ChildItem '%TEMP_DIR%\xl\worksheets\*.xml' | ForEach-Object { $content = Get-Content $_.FullName -Raw; $content = $content -replace '<sheetProtection[^>]*>.*?</sheetProtection>',''; Set-Content $_.FullName -Value $content -NoNewline }"
         echo       Removed worksheet protection
     )
 )
@@ -205,13 +206,17 @@ if "%FILE_TYPE%"=="WORD" (
         exit /b 1
     )
     echo       Found: word\document.xml
-    powershell -Command "$content = Get-Content '!DOCUMENT_FILE!' -Raw; $content = $content -replace '<w:documentProtection[^>]*/>',''; $content = $content -replace '<w:documentProtection[^>]*>.*?</w:documentProtection>',''; Set-Content '!DOCUMENT_FILE!' -Value $content -NoNewline"
+    powershell -Command "$content = Get-Content '!DOCUMENT_FILE!' -Raw; $content = $content -replace '<w:documentProtection[^>]*/>',''; Set-Content '!DOCUMENT_FILE!' -Value $content -NoNewline"
+    powershell -Command "$content = Get-Content '!DOCUMENT_FILE!' -Raw; $content = $content -replace '<w:documentProtection[^>]*>.*?</w:documentProtection>',''; Set-Content '!DOCUMENT_FILE!' -Value $content -NoNewline"
     echo       Removed Word protection tags
 
     :: Also check settings.xml for additional protection
     set "SETTINGS_FILE=%TEMP_DIR%\word\settings.xml"
     if exist "!SETTINGS_FILE!" (
-        powershell -Command "$content = Get-Content '!SETTINGS_FILE!' -Raw; $content = $content -replace '<w:documentProtection[^>]*/>',''; $content = $content -replace '<w:documentProtection[^>]*>.*?</w:documentProtection>',''; $content = $content -replace '<w:writeProtection[^>]*/>',''; $content = $content -replace '<w:writeProtection[^>]*>.*?</w:writeProtection>',''; Set-Content '!SETTINGS_FILE!' -Value $content -NoNewline"
+        powershell -Command "$content = Get-Content '!SETTINGS_FILE!' -Raw; $content = $content -replace '<w:documentProtection[^>]*/>',''; Set-Content '!SETTINGS_FILE!' -Value $content -NoNewline"
+        powershell -Command "$content = Get-Content '!SETTINGS_FILE!' -Raw; $content = $content -replace '<w:documentProtection[^>]*>.*?</w:documentProtection>',''; Set-Content '!SETTINGS_FILE!' -Value $content -NoNewline"
+        powershell -Command "$content = Get-Content '!SETTINGS_FILE!' -Raw; $content = $content -replace '<w:writeProtection[^>]*/>',''; Set-Content '!SETTINGS_FILE!' -Value $content -NoNewline"
+        powershell -Command "$content = Get-Content '!SETTINGS_FILE!' -Raw; $content = $content -replace '<w:writeProtection[^>]*>.*?</w:writeProtection>',''; Set-Content '!SETTINGS_FILE!' -Value $content -NoNewline"
         echo       Removed additional protection from settings
     )
 )
