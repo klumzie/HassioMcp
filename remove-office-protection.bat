@@ -11,13 +11,10 @@ echo.
 if "%~1"=="" (
     echo Usage: Drag and drop an Office file onto this script
     echo.
-    echo Supported formats (Office 2007+ XML-based):
+    echo Supported formats:
     echo   - PowerPoint: .pptx, .pptm, .ppsx, .potx, .potm
     echo   - Excel: .xlsx, .xlsm, .xltx, .xltm
     echo   - Word: .docx, .docm, .dotx, .dotm
-    echo.
-    echo Note: Legacy binary formats (.ppt, .xls, .doc) are NOT supported
-    echo       Convert to modern formats first using Office "Save As"
     echo.
     echo Or run: remove-office-protection.bat "path\to\file.docx"
     pause
@@ -30,70 +27,30 @@ set "FILE_DIR=%~dp1"
 set "FILE_NAME=%~n1"
 set "FILE_EXT=%~x1"
 
-:: Validate file extension and determine file type
+:: Detect file type
 set "FILE_TYPE="
-
-:: PowerPoint formats (presentations and templates)
 if /i "%FILE_EXT%"==".pptx" set "FILE_TYPE=POWERPOINT"
 if /i "%FILE_EXT%"==".pptm" set "FILE_TYPE=POWERPOINT"
 if /i "%FILE_EXT%"==".ppsx" set "FILE_TYPE=POWERPOINT"
 if /i "%FILE_EXT%"==".potx" set "FILE_TYPE=POWERPOINT"
 if /i "%FILE_EXT%"==".potm" set "FILE_TYPE=POWERPOINT"
-
-:: Excel formats (workbooks and templates)
 if /i "%FILE_EXT%"==".xlsx" set "FILE_TYPE=EXCEL"
 if /i "%FILE_EXT%"==".xlsm" set "FILE_TYPE=EXCEL"
 if /i "%FILE_EXT%"==".xltx" set "FILE_TYPE=EXCEL"
 if /i "%FILE_EXT%"==".xltm" set "FILE_TYPE=EXCEL"
-
-:: Word formats (documents and templates)
 if /i "%FILE_EXT%"==".docx" set "FILE_TYPE=WORD"
 if /i "%FILE_EXT%"==".docm" set "FILE_TYPE=WORD"
 if /i "%FILE_EXT%"==".dotx" set "FILE_TYPE=WORD"
 if /i "%FILE_EXT%"==".dotm" set "FILE_TYPE=WORD"
 
-:: Check if format is supported
+:: Validate file extension
 if "%FILE_TYPE%"=="" (
-    :: Check if it's a legacy binary format
-    set "IS_LEGACY="
-    if /i "%FILE_EXT%"==".ppt" set "IS_LEGACY=PowerPoint 97-2003"
-    if /i "%FILE_EXT%"==".pps" set "IS_LEGACY=PowerPoint 97-2003 Slideshow"
-    if /i "%FILE_EXT%"==".pot" set "IS_LEGACY=PowerPoint 97-2003 Template"
-    if /i "%FILE_EXT%"==".xls" set "IS_LEGACY=Excel 97-2003"
-    if /i "%FILE_EXT%"==".xlt" set "IS_LEGACY=Excel 97-2003 Template"
-    if /i "%FILE_EXT%"==".doc" set "IS_LEGACY=Word 97-2003"
-    if /i "%FILE_EXT%"==".dot" set "IS_LEGACY=Word 97-2003 Template"
-
-    if not "!IS_LEGACY!"=="" (
-        echo ========================================
-        echo LEGACY FORMAT DETECTED
-        echo ========================================
-        echo File type: !IS_LEGACY! ^(%FILE_EXT%^)
-        echo.
-        echo This script only works with modern Office formats
-        echo that use XML structure ^(Office 2007 and later^).
-        echo.
-        echo To use this tool:
-        echo 1. Open your file in Microsoft Office
-        echo 2. Click "File" -^> "Save As"
-        echo 3. Choose the modern format:
-        echo    - .ppt -^> .pptx
-        echo    - .xls -^> .xlsx
-        echo    - .doc -^> .docx
-        echo 4. Run this script on the converted file
-        echo ========================================
-        pause
-        exit /b 1
-    )
-
     echo Error: Unsupported file type: %FILE_EXT%
     echo.
     echo Supported formats:
     echo   PowerPoint: .pptx, .pptm, .ppsx, .potx, .potm
     echo   Excel: .xlsx, .xlsm, .xltx, .xltm
     echo   Word: .docx, .docm, .dotx, .dotm
-    echo.
-    echo Legacy formats (.ppt, .xls, .doc) are NOT supported
     pause
     exit /b 1
 )
@@ -120,7 +77,7 @@ if errorlevel 1 (
 )
 echo       Backup created: %FILE_NAME%_backup%FILE_EXT%
 
-:: Step 2: Create working copy as .zip
+:: Step 2: Create working copy and rename to .zip
 set "ZIP_FILE=%FILE_DIR%%FILE_NAME%_temp.zip"
 echo [2/9] Creating working copy...
 copy "%INPUT_FILE%" "%ZIP_FILE%" >nul
@@ -152,9 +109,8 @@ echo [5/9] Locating protection files...
 echo [6/9] Removing protection tags...
 
 if "%FILE_TYPE%"=="POWERPOINT" (
-    :: PowerPoint: Remove modifyVerifier from presentation.xml
-    set "TARGET_FILE=%TEMP_DIR%\ppt\presentation.xml"
-    if not exist "!TARGET_FILE!" (
+    set "PRESENTATION_XML=%TEMP_DIR%\ppt\presentation.xml"
+    if not exist "!PRESENTATION_XML!" (
         echo Error: presentation.xml not found in ppt folder
         rd /s /q "%TEMP_DIR%"
         del "%ZIP_FILE%"
@@ -162,13 +118,14 @@ if "%FILE_TYPE%"=="POWERPOINT" (
         exit /b 1
     )
     echo       Found: ppt\presentation.xml
-    powershell -Command "$content = Get-Content '!TARGET_FILE!' -Raw; $content = $content -replace '<p:modifyVerifier[^>]*/>',''; Set-Content '!TARGET_FILE!' -Value $content -NoNewline"
-    powershell -Command "$content = Get-Content '!TARGET_FILE!' -Raw; $content = $content -replace '<p:modifyVerifier[^>]*>.*?</p:modifyVerifier>',''; Set-Content '!TARGET_FILE!' -Value $content -NoNewline"
-    echo       Removed PowerPoint protection tags
+    powershell -Command "$content = Get-Content '!PRESENTATION_XML!' -Raw; $content = $content -replace '<p:modifyVerifier[^>]*/>',''; $content = $content -replace '<p:modifyVerifier[^>]*>.*?</p:modifyVerifier>',''; Set-Content '!PRESENTATION_XML!' -Value $content -NoNewline"
+    if errorlevel 1 (
+        echo Warning: PowerShell modification may have failed, but continuing...
+    )
+    echo       Protection tags removed
 )
 
 if "%FILE_TYPE%"=="EXCEL" (
-    :: Excel: Remove workbook protection and sheet protection
     set "WORKBOOK_FILE=%TEMP_DIR%\xl\workbook.xml"
     if not exist "!WORKBOOK_FILE!" (
         echo Error: workbook.xml not found in xl folder
@@ -178,25 +135,16 @@ if "%FILE_TYPE%"=="EXCEL" (
         exit /b 1
     )
     echo       Found: xl\workbook.xml
-
-    :: Remove workbook protection
-    powershell -Command "$content = Get-Content '!WORKBOOK_FILE!' -Raw; $content = $content -replace '<workbookProtection[^>]*/>',''; Set-Content '!WORKBOOK_FILE!' -Value $content -NoNewline"
-    powershell -Command "$content = Get-Content '!WORKBOOK_FILE!' -Raw; $content = $content -replace '<workbookProtection[^>]*>.*?</workbookProtection>',''; Set-Content '!WORKBOOK_FILE!' -Value $content -NoNewline"
-    powershell -Command "$content = Get-Content '!WORKBOOK_FILE!' -Raw; $content = $content -replace '<fileSharing[^>]*/>',''; Set-Content '!WORKBOOK_FILE!' -Value $content -NoNewline"
-    powershell -Command "$content = Get-Content '!WORKBOOK_FILE!' -Raw; $content = $content -replace '<fileSharing[^>]*>.*?</fileSharing>',''; Set-Content '!WORKBOOK_FILE!' -Value $content -NoNewline"
-    echo       Removed workbook protection
-
-    :: Remove sheet protection from all worksheets
+    powershell -Command "$c=Get-Content '!WORKBOOK_FILE!' -Raw;$c=$c -replace '<workbookProtection[^>]*/>','';$c=$c -replace '<workbookProtection[^>]*>.*?</workbookProtection>','';Set-Content '!WORKBOOK_FILE!' -Value $c -NoNewline"
+    powershell -Command "$c=Get-Content '!WORKBOOK_FILE!' -Raw;$c=$c -replace '<fileSharing[^>]*/>','';$c=$c -replace '<fileSharing[^>]*>.*?</fileSharing>','';Set-Content '!WORKBOOK_FILE!' -Value $c -NoNewline"
+    echo       Workbook protection removed
     if exist "%TEMP_DIR%\xl\worksheets\" (
-        echo       Processing worksheet protection...
-        powershell -Command "Get-ChildItem '%TEMP_DIR%\xl\worksheets\*.xml' | ForEach-Object { $content = Get-Content $_.FullName -Raw; $content = $content -replace '<sheetProtection[^>]*/>',''; Set-Content $_.FullName -Value $content -NoNewline }"
-        powershell -Command "Get-ChildItem '%TEMP_DIR%\xl\worksheets\*.xml' | ForEach-Object { $content = Get-Content $_.FullName -Raw; $content = $content -replace '<sheetProtection[^>]*>.*?</sheetProtection>',''; Set-Content $_.FullName -Value $content -NoNewline }"
-        echo       Removed worksheet protection
+        powershell -Command "Get-ChildItem '%TEMP_DIR%\xl\worksheets\*.xml' | ForEach-Object { $c = Get-Content $_.FullName -Raw; $c = $c -replace '<sheetProtection[^>]*/>',''; $c = $c -replace '<sheetProtection[^>]*>.*?</sheetProtection>',''; Set-Content $_.FullName -Value $c -NoNewline }"
+        echo       Worksheet protection removed
     )
 )
 
 if "%FILE_TYPE%"=="WORD" (
-    :: Word: Remove documentProtection from document.xml
     set "DOCUMENT_FILE=%TEMP_DIR%\word\document.xml"
     if not exist "!DOCUMENT_FILE!" (
         echo Error: document.xml not found in word folder
@@ -206,18 +154,13 @@ if "%FILE_TYPE%"=="WORD" (
         exit /b 1
     )
     echo       Found: word\document.xml
-    powershell -Command "$content = Get-Content '!DOCUMENT_FILE!' -Raw; $content = $content -replace '<w:documentProtection[^>]*/>',''; Set-Content '!DOCUMENT_FILE!' -Value $content -NoNewline"
-    powershell -Command "$content = Get-Content '!DOCUMENT_FILE!' -Raw; $content = $content -replace '<w:documentProtection[^>]*>.*?</w:documentProtection>',''; Set-Content '!DOCUMENT_FILE!' -Value $content -NoNewline"
-    echo       Removed Word protection tags
-
-    :: Also check settings.xml for additional protection
+    powershell -Command "$content = Get-Content '!DOCUMENT_FILE!' -Raw; $content = $content -replace '<w:documentProtection[^>]*/>',''; $content = $content -replace '<w:documentProtection[^>]*>.*?</w:documentProtection>',''; Set-Content '!DOCUMENT_FILE!' -Value $content -NoNewline"
+    echo       Document protection removed
     set "SETTINGS_FILE=%TEMP_DIR%\word\settings.xml"
     if exist "!SETTINGS_FILE!" (
-        powershell -Command "$content = Get-Content '!SETTINGS_FILE!' -Raw; $content = $content -replace '<w:documentProtection[^>]*/>',''; Set-Content '!SETTINGS_FILE!' -Value $content -NoNewline"
-        powershell -Command "$content = Get-Content '!SETTINGS_FILE!' -Raw; $content = $content -replace '<w:documentProtection[^>]*>.*?</w:documentProtection>',''; Set-Content '!SETTINGS_FILE!' -Value $content -NoNewline"
-        powershell -Command "$content = Get-Content '!SETTINGS_FILE!' -Raw; $content = $content -replace '<w:writeProtection[^>]*/>',''; Set-Content '!SETTINGS_FILE!' -Value $content -NoNewline"
-        powershell -Command "$content = Get-Content '!SETTINGS_FILE!' -Raw; $content = $content -replace '<w:writeProtection[^>]*>.*?</w:writeProtection>',''; Set-Content '!SETTINGS_FILE!' -Value $content -NoNewline"
-        echo       Removed additional protection from settings
+        powershell -Command "$c=Get-Content '!SETTINGS_FILE!' -Raw;$c=$c -replace '<w:documentProtection[^>]*/>','';$c=$c -replace '<w:documentProtection[^>]*>.*?</w:documentProtection>','';Set-Content '!SETTINGS_FILE!' -Value $c -NoNewline"
+        powershell -Command "$c=Get-Content '!SETTINGS_FILE!' -Raw;$c=$c -replace '<w:writeProtection[^>]*/>','';$c=$c -replace '<w:writeProtection[^>]*>.*?</w:writeProtection>','';Set-Content '!SETTINGS_FILE!' -Value $c -NoNewline"
+        echo       Settings protection removed
     )
 )
 
