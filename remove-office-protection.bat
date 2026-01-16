@@ -1,6 +1,10 @@
 @echo off
 setlocal enabledelayedexpansion
 
+:: Test that window opens
+echo Script is starting...
+timeout /t 2 >nul
+
 echo ========================================
 echo Office Protection Remover
 echo (Word/Excel/PowerPoint)
