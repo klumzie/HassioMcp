@@ -1,6 +1,13 @@
 @echo off
+:: Wrapper to ensure window stays open
+call :main %*
+pause
+exit /b
+
+:main
 setlocal enabledelayedexpansion
 
+cls
 echo ========================================
 echo Office Protection Remover
 echo (Word/Excel/PowerPoint)
@@ -20,7 +27,6 @@ if "%~1"=="" (
     echo       Convert to modern formats first using Office "Save As"
     echo.
     echo Or run: remove-office-protection.bat "path\to\file.docx"
-    pause
     exit /b 1
 )
 
@@ -82,7 +88,6 @@ if "%FILE_TYPE%"=="" (
         echo    - .doc -^> .docx
         echo 4. Run this script on the converted file
         echo ========================================
-        pause
         exit /b 1
     )
 
@@ -94,14 +99,12 @@ if "%FILE_TYPE%"=="" (
     echo   Word: .docx, .docm, .dotx, .dotm
     echo.
     echo Legacy formats (.ppt, .xls, .doc) are NOT supported
-    pause
     exit /b 1
 )
 
 :: Check if file exists
 if not exist "%INPUT_FILE%" (
     echo Error: File not found: %INPUT_FILE%
-    pause
     exit /b 1
 )
 
@@ -115,7 +118,6 @@ echo [1/9] Creating backup...
 copy "%INPUT_FILE%" "%BACKUP_FILE%" >nul
 if errorlevel 1 (
     echo Error: Failed to create backup
-    pause
     exit /b 1
 )
 echo       Backup created: %FILE_NAME%_backup%FILE_EXT%
@@ -126,7 +128,6 @@ echo [2/9] Creating working copy...
 copy "%INPUT_FILE%" "%ZIP_FILE%" >nul
 if errorlevel 1 (
     echo Error: Failed to create working copy
-    pause
     exit /b 1
 )
 
@@ -143,7 +144,6 @@ if errorlevel 1 (
     echo Error: Failed to extract ZIP
     rd /s /q "%TEMP_DIR%"
     del "%ZIP_FILE%"
-    pause
     exit /b 1
 )
 
@@ -158,7 +158,6 @@ if "%FILE_TYPE%"=="POWERPOINT" (
         echo Error: presentation.xml not found in ppt folder
         rd /s /q "%TEMP_DIR%"
         del "%ZIP_FILE%"
-        pause
         exit /b 1
     )
     echo       Found: ppt\presentation.xml
@@ -173,7 +172,6 @@ if "%FILE_TYPE%"=="EXCEL" (
         echo Error: workbook.xml not found in xl folder
         rd /s /q "%TEMP_DIR%"
         del "%ZIP_FILE%"
-        pause
         exit /b 1
     )
     echo       Found: xl\workbook.xml
@@ -197,7 +195,6 @@ if "%FILE_TYPE%"=="WORD" (
         echo Error: document.xml not found in word folder
         rd /s /q "%TEMP_DIR%"
         del "%ZIP_FILE%"
-        pause
         exit /b 1
     )
     echo       Found: word\document.xml
@@ -222,7 +219,6 @@ powershell -Command "Compress-Archive -Path '%TEMP_DIR%\*' -DestinationPath '%ZI
 if errorlevel 1 (
     echo Error: Failed to repackage ZIP
     rd /s /q "%TEMP_DIR%"
-    pause
     exit /b 1
 )
 
@@ -233,7 +229,6 @@ move "%ZIP_FILE%" "%OUTPUT_FILE%" >nul
 if errorlevel 1 (
     echo Error: Failed to create final file
     rd /s /q "%TEMP_DIR%"
-    pause
     exit /b 1
 )
 
@@ -253,4 +248,4 @@ echo The protection has been removed from the new file.
 echo Your original file is untouched, and a backup was created.
 echo ========================================
 echo.
-pause
+exit /b 0
